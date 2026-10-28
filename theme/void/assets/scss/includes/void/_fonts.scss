@@ -1,0 +1,27 @@
+/* Self-hosted fonts (no external CDN required)
+-------------------------------------------------- */
+
+@each $weight in 400, 500, 700 {
+  @font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-display: swap;
+    font-weight: $weight;
+    src: url("../webfonts/jetbrains-mono-latin-#{$weight}-normal.woff2") format("woff2");
+  }
+}
+
+@each $weight in 400, 500, 600, 700 {
+  @font-face {
+    font-family: "Inter";
+    font-style: normal;
+    font-display: swap;
+    font-weight: $weight;
+    src: url("../webfonts/inter-latin-#{$weight}-normal.woff2") format("woff2");
+  }
+}
+
+$fa-font-path: "../webfonts";
+@import "~/@fortawesome/fontawesome-free/scss/fontawesome.scss";
+@import "~/@fortawesome/fontawesome-free/scss/solid.scss";
+@import "~/@fortawesome/fontawesome-free/scss/brands.scss";

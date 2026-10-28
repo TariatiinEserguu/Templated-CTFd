@@ -1,0 +1,149 @@
+/* Page headers (terminal prompt + title) and Markdown documents
+-------------------------------------------------- */
+
+.void-header,
+.jumbotron {
+  padding: 3rem 0 2rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid var(--void-line);
+  background: linear-gradient(180deg, rgba(var(--void-green-rgb), 0.03), transparent);
+  text-align: left;
+
+  h1 {
+    font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+
+  h2,
+  h3 {
+    font-size: 1rem;
+  }
+
+  .badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: var(--void-bg-raised) !important;
+    color: var(--void-cyan) !important;
+    border: 1px solid rgba(var(--void-cyan-rgb), 0.4);
+  }
+}
+
+.void-path {
+  font-family: var(--void-mono);
+  font-size: 0.8rem;
+  color: var(--void-muted);
+  margin-bottom: 0.6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.void-header-sub {
+  margin: 0.75rem 0 0;
+  max-width: 62ch;
+  color: var(--void-muted);
+}
+
+.void-h2 {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+
+  .text-accent {
+    margin-right: 0.4rem;
+  }
+}
+
+.void-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.void-textlink {
+  font-family: var(--void-mono);
+  font-size: 0.82rem;
+  color: var(--void-cyan);
+
+  span {
+    display: inline-block;
+    transition: transform var(--void-fast) var(--void-ease);
+  }
+
+  &:hover span {
+    transform: translateX(3px);
+  }
+}
+
+.void-doc-body {
+  padding: 1.75rem;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+    color: var(--void-green);
+  }
+
+  h3 {
+    font-size: 1.05rem;
+  }
+
+  > h1:first-child,
+  > h2:first-child,
+  > h3:first-child {
+    margin-top: 0;
+  }
+
+  img {
+    max-width: 100%;
+    border-radius: var(--void-radius-sm);
+  }
+
+  ul,
+  ol {
+    padding-left: 1.3rem;
+  }
+
+  li::marker {
+    color: var(--void-green);
+  }
+
+  table {
+    width: 100%;
+    margin-bottom: 1rem;
+    border-collapse: collapse;
+
+    th,
+    td {
+      border: 1px solid var(--void-line);
+      padding: 0.45rem 0.7rem;
+    }
+
+    th {
+      background: var(--void-bg-raised);
+      font-family: var(--void-mono);
+      font-size: 0.82rem;
+    }
+  }
+}

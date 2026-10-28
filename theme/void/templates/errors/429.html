@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% from "macros/void.html" import error_screen with context %}
+
+{% block content %}
+  {{ error_screen(429, _("429 Too Many Requests"), _("Rate limit exceeded. Slow down and try again shortly."), "fa-gauge-high") }}
+{% endblock %}

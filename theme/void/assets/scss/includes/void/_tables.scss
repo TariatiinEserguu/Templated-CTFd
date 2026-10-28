@@ -1,0 +1,70 @@
+/* Tables (scoreboard, team/user listings, solve lists)
+-------------------------------------------------- */
+
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--void-text);
+  --bs-table-border-color: var(--void-line);
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.015);
+  --bs-table-striped-color: var(--void-text);
+  --bs-table-hover-bg: rgba(var(--void-cyan-rgb), 0.04);
+  --bs-table-hover-color: var(--void-text);
+  margin-bottom: 0;
+
+  > thead > tr > th,
+  > thead > tr > td {
+    font-family: var(--void-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--void-muted);
+    background: var(--void-bg-raised);
+    border-bottom: 1px solid var(--void-line-hi);
+    padding: 0.75rem 1rem;
+    white-space: nowrap;
+  }
+
+  > tbody > tr > td,
+  > tbody > tr > th {
+    padding: 0.75rem 1rem;
+  }
+
+  > tbody > tr {
+    transition: background var(--void-fast) var(--void-ease);
+
+    &:hover > * {
+      background: rgba(var(--void-cyan-rgb), 0.035);
+    }
+  }
+}
+
+// CTFd listing pages wrap plain tables; give them the panel treatment
+.container-xl > .row > .col-md-12 > .table,
+.container-xl > .row > .col-md-12 > .table-responsive > .table,
+.void-table {
+  border: 1px solid var(--void-line);
+  border-radius: var(--void-radius);
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+  background: var(--void-panel);
+}
+
+.void-table > :last-child > tr:last-child > * {
+  border-bottom: 0;
+}
+
+// Profile pages: stat headings and graph containers
+#score-graph,
+#solves-graph,
+#keys-pie-graph,
+#categories-pie-graph,
+#keys-graph,
+#categories-graph {
+  border-radius: var(--void-radius);
+}
+
+.award-icon {
+  color: var(--void-amber);
+}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "macros/void.html" import auth_panel with context %}
+
+{% block body_class %}void-auth-page{% endblock %}
+
+{% block content %}
+  <div class="container-xl">
+    {% call auth_panel(_("Initialize session"), "login", _("Authenticate to access the challenge network.")) %}
+      {% include "components/errors.html" %}
+
+      {% if integrations.mlc() %}
+        <a class="btn btn-outline-light w-100 void-btn-ghost" href="{{ url_for('auth.oauth_login') }}">
+          {% trans %}Login with Major League Cyber{% endtrans %}
+        </a>
+        <div class="void-or"><span>{% trans %}or{% endtrans %}</span></div>
+      {% endif %}
+
+      {% with form = Forms.auth.LoginForm() %}
+        <form method="post" accept-charset="utf-8" class="void-form">
+          <div class="mb-3">
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-control", value=name, autocomplete="username email", required=True, autofocus=True) }}
+          </div>
+
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-baseline">
+              {{ form.password.label(class="form-label") }}
+              <a class="small" href="{{ url_for('auth.reset_password') }}">{% trans %}Forgot your password?{% endtrans %}</a>
+            </div>
+            {{ form.password(class="form-control", value=password, autocomplete="current-password", required=True) }}
+          </div>
+
+          {{ form.nonce() }}
+          {{ form.submit(class="btn btn-primary void-btn w-100 mt-2", value=_("Log in")) }}
+        </form>
+      {% endwith %}
+
+      {% if registration_visible() %}
+        <p class="void-auth-alt">{% trans %}No account yet?{% endtrans %} <a href="{{ url_for('auth.register') }}">{% trans %}Create one{% endtrans %} →</a></p>
+      {% endif %}
+    {% endcall %}
+  </div>
+{% endblock %}

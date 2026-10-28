@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block body_class %}void-scoreboard-page{% endblock %}
+
+{% block content %}
+  <div class="void-header">
+    <div class="container-xl">
+      <p class="void-path" aria-hidden="true"><span class="text-accent">void</span>:~/scoreboard$ watch -n 300 rank</p>
+      <h1>{% trans %}Scoreboard{% endtrans %}</h1>
+      <p class="void-header-sub">{{ get_mode_as_word(plural=True, capitalize=True) }} {% trans %}ranked by score. Ties go to whoever reached the score first.{% endtrans %}</p>
+    </div>
+  </div>
+
+  <div class="container-xl">
+    {% include "components/errors.html" %}
+
+    <div x-data="ScoreboardList">
+      <div x-show="!loaded" class="void-loading">
+        <span class="void-spinner" aria-hidden="true"></span><span>{% trans %}syncing standings…{% endtrans %}</span>
+      </div>
+
+      <div x-show="loaded" x-cloak>
+        {# Podium: top three of the current bracket #}
+        <ol class="void-podium" x-show="visible().length" aria-label="{% trans %}Top three{% endtrans %}">
+          <template x-for="(s, i) in visible().slice(0, 3)" :key="s.account_id">
+            <li class="void-podium-card" :class="['is-p' + (i + 1), isMe(s) ? 'is-me' : '']">
+              <span class="void-podium-rank" x-text="String(i + 1).padStart(2, '0')"></span>
+              <span class="void-podium-icon" aria-hidden="true">
+                <i class="fas" :class="['fa-crown', 'fa-medal', 'fa-award'][i]"></i>
+              </span>
+              <a class="void-podium-name" :href="s.account_url" x-text="s.name"></a>
+              <span class="void-podium-score"><strong x-text="fmt(s.score)"></strong> pts</span>
+              <span class="void-podium-meta">
+                <template x-if="solveCounts"><span x-text="`${solveCounts[s.account_id] || 0} ${(solveCounts[s.account_id] || 0) === 1 ? 'solve' : 'solves'}`"></span></template>
+                <template x-if="isMe(s)"><span class="void-chip is-cyan">you</span></template>
+              </span>
+            </li>
+          </template>
+        </ol>
+
+        {# Score progression of the top 10 (CTFd scoreboard/top API) #}
+        <section class="void-panel void-chart-panel" x-data="ScoreboardDetail" @bracket-change.window="activeBracket=$event.detail; update();" x-show="show" aria-label="{% trans %}Score progression of the top ten{% endtrans %}">
+          <div class="void-panel-head">
+            <span class="void-panel-title"><i class="fas fa-chart-line me-1" aria-hidden="true"></i>{% trans %}score progression{% endtrans %}</span>
+            <span class="ms-auto">{% trans %}top 10{% endtrans %}</span>
+          </div>
+          <div id="score-graph" x-ref="scoregraph" class="void-chart"></div>
+        </section>
+
+        <div class="void-sb-toolbar">
+          <template x-if="brackets.length">
+            <nav class="nav nav-pills" aria-label="{% trans %}Brackets{% endtrans %}">
+              <button type="button" :class="{'nav-link': true, 'active': !activeBracket}" :aria-pressed="!activeBracket" @click="activeBracket=null">{% trans %}All{% endtrans %}</button>
+              <template x-for="bracket in brackets">
+                <button type="button" :class="{'nav-link': true, 'active': activeBracket == bracket.id}" :aria-pressed="activeBracket == bracket.id" x-text="bracket.name" @click="activeBracket=bracket.id"></button>
+              </template>
+            </nav>
+          </template>
+          <div class="void-search ms-auto">
+            <label for="void-sb-search" class="visually-hidden">{% trans %}Search the scoreboard{% endtrans %}</label>
+            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+            <input id="void-sb-search" type="search" class="form-control" placeholder="find {{ get_mode_as_word() }}…" x-model.debounce.150ms="query" autocomplete="off">
+          </div>
+          <template x-if="myRow()">
+            <button type="button" class="btn btn-sm btn-outline-info" @click="jumpToMe()">
+              <i class="fas fa-location-crosshairs me-1" aria-hidden="true"></i>{% trans %}jump to me{% endtrans %}
+            </button>
+          </template>
+        </div>
+
+        <div class="void-panel void-sb-table-wrap" x-show="visible().length">
+          <table class="table void-table void-sb-table align-middle mb-0">
+            <caption class="visually-hidden">{% trans %}Full standings{% endtrans %}</caption>
+            <thead>
+            <tr>
+              <th scope="col" class="void-col-rank">{% trans %}Rank{% endtrans %}</th>
+              <th scope="col">{{ get_mode_as_word(capitalize=True) }}</th>
+              <th scope="col" class="void-col-num" x-show="solveCounts">{% trans %}Solves{% endtrans %}</th>
+              <th scope="col" class="void-col-num">{% trans %}Score{% endtrans %}</th>
+            </tr>
+            </thead>
+            <tbody>
+              <template x-for="row in pageRows()" :key="row.s.account_id">
+                <tr :class="{'is-me': isMe(row.s), 'is-top': row.rank <= 3}" :id="'sb-' + row.s.account_id" :aria-current="isMe(row.s) ? 'true' : null">
+                  <th scope="row" class="void-col-rank"><span class="void-rank" :data-rank="row.rank" x-text="String(row.rank).padStart(2, '0')"></span></th>
+                  <td>
+                    <a :href="row.s.account_url" x-text="row.s.name" class="void-sb-name"></a>
+                    <template x-if="isMe(row.s)"><span class="void-chip is-cyan ms-2"><i class="fas fa-user" aria-hidden="true"></i>you</span></template>
+                    <template x-if="row.s.bracket_name">
+                      <span class="void-chip ms-2" x-text="row.s.bracket_name"></span>
+                    </template>
+                  </td>
+                  <td class="void-col-num" x-show="solveCounts" x-text="solveCounts ? (solveCounts[row.s.account_id] || 0) : ''"></td>
+                  <td class="void-col-num void-sb-score" x-text="fmt(row.s.score)"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="void-empty" x-show="standings.length && !filteredRows().length">
+          <div class="void-empty-icon"><i class="fas fa-user-slash" aria-hidden="true"></i></div>
+          <strong>{% trans %}No match{% endtrans %}</strong>
+          <span>{% trans %}Nobody on the board matches that name.{% endtrans %}</span>
+        </div>
+
+        <nav class="void-sb-pager" x-show="pages() > 1" aria-label="{% trans %}Scoreboard pages{% endtrans %}">
+          <button type="button" class="btn btn-sm btn-outline-light void-btn-ghost" :disabled="page <= 1" @click="page--">← {% trans %}prev{% endtrans %}</button>
+          <span class="void-label" aria-live="polite" x-text="`page ${page} / ${pages()} · ${filteredRows().length} entries`"></span>
+          <button type="button" class="btn btn-sm btn-outline-light void-btn-ghost" :disabled="page >= pages()" @click="page++">{% trans %}next{% endtrans %} →</button>
+        </nav>
+
+        <div class="void-empty" x-show="!standings.length">
+          <div class="void-empty-icon"><i class="fas fa-ranking-star" aria-hidden="true"></i></div>
+          <strong>{% trans %}Scoreboard is empty{% endtrans %}</strong>
+          <span>{% trans %}No points scored yet. The first flag claims the top spot.{% endtrans %}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ Assets.js("assets/js/scoreboard.js") }}
+{% endblock %}

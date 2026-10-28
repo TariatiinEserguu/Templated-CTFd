@@ -1,0 +1,68 @@
+/* VOID//CTF — terminal theme for CTFd
+-------------------------------------------------- */
+
+// Brand palette. Change these (and the matching CSS tokens in
+// includes/void/_tokens.scss) to re-skin the whole theme.
+$void-bg: #080b10;
+$void-panel: #101720;
+$void-green: #39ff88;
+$void-cyan: #00d9ff;
+$void-amber: #ffb84d;
+$void-red: #ff6b7a;
+$void-text: #e6edf3;
+$void-muted: #8b9bb4;
+$void-line: #1f2b3a;
+
+@use "bootstrap/scss/bootstrap" as * with (
+  $primary: $void-green,
+  $secondary: #2a3647,
+  $success: $void-green,
+  $info: $void-cyan,
+  $warning: $void-amber,
+  $danger: $void-red,
+  $dark: $void-panel,
+  $body-bg-dark: $void-bg,
+  $body-color-dark: $void-text,
+  $body-secondary-color-dark: $void-muted,
+  $body-tertiary-color-dark: rgba($void-muted, 0.8),
+  $body-secondary-bg-dark: #0c121a,
+  $body-tertiary-bg-dark: $void-panel,
+  $border-color-dark: $void-line,
+  $link-color-dark: $void-cyan,
+  $link-hover-color-dark: #5ce6ff,
+  $headings-color-dark: $void-text,
+  $font-family-sans-serif: ("Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif),
+  $font-family-monospace: ("JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace),
+  $border-radius: 0.5rem,
+  $border-radius-sm: 0.375rem,
+  $border-radius-lg: 0.75rem,
+  $min-contrast-ratio: 4.5,
+  $enable-shadows: false,
+  $input-btn-focus-width: 0.2rem,
+  $input-btn-focus-color-opacity: 0.35
+);
+
+@use "includes/void/fonts";
+@use "includes/void/tokens";
+@use "includes/void/base";
+@use "includes/void/nav";
+@use "includes/void/palette";
+@use "includes/void/headers";
+@use "includes/void/forms";
+@use "includes/void/home";
+@use "includes/void/board";
+@use "includes/void/modal";
+@use "includes/void/scoreboard";
+@use "includes/void/tables";
+@use "includes/void/footer";
+@use "includes/void/motion";
+
+@use "includes/components/graphs";
+
+@use "includes/utils/opacity";
+@use "includes/utils/min-height";
+@use "includes/utils/cursors";
+@use "includes/utils/lolight";
+
+@use "includes/icons/award-icons";
+@use "includes/icons/flag-icons";

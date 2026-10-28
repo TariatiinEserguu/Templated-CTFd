@@ -1,0 +1,65 @@
+{#- Command palette. It only navigates to real CTFd pages; nothing is executed.
+    The command list is built here so it follows the same visibility rules as the navbar. -#}
+{% set _cmds = [] %}
+{% set _x = _cmds.append({"name": "home", "desc": _("Landing page"), "url": url_for('views.static_html', route='/')}) %}
+{% set _x = _cmds.append({"name": "challenges", "desc": _("Challenge board — add words to search, e.g. 'challenges crypto'"), "url": url_for('challenges.listing'), "query": True}) %}
+{% if Configs.account_visibility != 'admins' and Configs.score_visibility != 'admins' %}
+  {% set _x = _cmds.append({"name": "scoreboard", "desc": _("Live rankings"), "url": url_for('scoreboard.listing')}) %}
+{% endif %}
+{% if Configs.account_visibility != 'admins' %}
+  {% if Configs.user_mode == 'teams' %}
+    {% set _x = _cmds.append({"name": "teams", "desc": _("All registered teams"), "url": url_for('teams.listing')}) %}
+  {% endif %}
+  {% set _x = _cmds.append({"name": "players", "desc": _("All registered players"), "url": url_for('users.listing')}) %}
+{% endif %}
+{% for page in get_pages() %}
+  {% set _x = _cmds.append({"name": page.route | lower, "desc": page.title, "url": url_for('views.static_html', route=page.route)}) %}
+{% endfor %}
+{% if authed() %}
+  {% set _x = _cmds.append({"name": "profile", "desc": _("Your player profile"), "url": url_for('users.private')}) %}
+  {% if Configs.user_mode == 'teams' %}
+    {% set _x = _cmds.append({"name": "team", "desc": _("Your team: create, join or manage"), "url": url_for('teams.private')}) %}
+  {% endif %}
+  {% set _x = _cmds.append({"name": "notifications", "desc": _("Announcements from the organizers"), "url": url_for('views.notifications')}) %}
+  {% set _x = _cmds.append({"name": "settings", "desc": _("Account settings"), "url": url_for('views.settings')}) %}
+  {% if is_admin() %}
+    {% set _x = _cmds.append({"name": "admin", "desc": _("CTFd admin panel"), "url": url_for('admin.view')}) %}
+  {% endif %}
+  {% set _x = _cmds.append({"name": "logout", "desc": _("End your session"), "url": url_for('auth.logout')}) %}
+{% else %}
+  {% set _x = _cmds.append({"name": "login", "desc": _("Authenticate"), "url": url_for('auth.login')}) %}
+  {% if registration_visible() %}
+    {% set _x = _cmds.append({"name": "register", "desc": _("Create an account"), "url": url_for('auth.register')}) %}
+  {% endif %}
+{% endif %}
+
+<script type="application/json" id="void-commands">{{ _cmds | tojson }}</script>
+
+<div id="void-palette" class="void-palette" role="dialog" aria-modal="true" aria-labelledby="void-palette-label" hidden>
+  <div class="void-palette-backdrop" data-void-palette-close></div>
+  <div class="void-palette-box">
+    <div class="void-panel-head">
+      <span class="void-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span id="void-palette-label" class="void-panel-title">{% trans %}command palette{% endtrans %}</span>
+      <span class="ms-auto"><kbd>Esc</kbd> <span class="text-muted small">{% trans %}close{% endtrans %}</span></span>
+    </div>
+    <form class="void-palette-form" autocomplete="off">
+      <label for="void-palette-input" class="void-palette-ps1">
+        <span class="text-accent">{{ (User.name if authed() else "guest") | lower | truncate(16, True, "") }}@void</span><span class="text-muted">:</span><span class="text-cyan">~</span><span class="text-muted">$</span>
+        <span class="visually-hidden">{% trans %}Type a command. Try help.{% endtrans %}</span>
+      </label>
+      <input
+          id="void-palette-input" type="text" spellcheck="false" autocapitalize="off"
+          role="combobox" aria-expanded="true" aria-controls="void-palette-list" aria-autocomplete="list"
+          placeholder="{% trans %}type a command — try 'help'{% endtrans %}"
+      >
+    </form>
+    <ul id="void-palette-list" class="void-palette-list" role="listbox" aria-label="{% trans %}Matching commands{% endtrans %}"></ul>
+    <div class="void-palette-output" aria-live="polite"></div>
+    <div class="void-palette-foot">
+      <span><kbd>↑</kbd><kbd>↓</kbd> {% trans %}select{% endtrans %}</span>
+      <span><kbd>Enter</kbd> {% trans %}run{% endtrans %}</span>
+      <span><kbd>Tab</kbd> {% trans %}complete{% endtrans %}</span>
+    </div>
+  </div>
+</div>

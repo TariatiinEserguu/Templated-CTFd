@@ -1,0 +1,75 @@
+/* Entrance motion + reduced-motion support
+-------------------------------------------------- */
+
+@keyframes void-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.void-home .void-hero .col-lg-7 > *,
+.void-home .void-term,
+.void-stats {
+  animation: void-rise 520ms var(--void-ease) both;
+}
+
+.void-home .void-hero .col-lg-7 > :nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.void-home .void-hero .col-lg-7 > :nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.void-home .void-hero .col-lg-7 > :nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.void-home .void-hero .col-lg-7 > :nth-child(n + 5) {
+  animation-delay: 240ms;
+}
+
+.void-home .void-term {
+  animation-delay: 200ms;
+}
+
+.void-stats {
+  animation-delay: 320ms;
+}
+
+.void-term-line {
+  animation: void-rise 300ms var(--void-ease) both;
+
+  @for $i from 1 through 8 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{240 + $i * 70}ms;
+    }
+  }
+}
+
+.void-grid > .void-card,
+.void-featured > .void-card {
+  animation: void-rise 280ms var(--void-ease) both;
+}
+
+// Respect the OS setting: kill movement, keep instant state changes.
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .void-cursor::after {
+    animation: none;
+  }
+
+  .void-card:hover:not(:disabled) {
+    transform: none;
+  }
+}

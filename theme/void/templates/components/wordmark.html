@@ -1,0 +1,9 @@
+{#- Renders the event name as a wordmark. A "//" in the name is highlighted,
+    so "VOID//CTF" becomes VOID<accent>//</accent>CTF. -#}
+{%- set _wm = Configs.ctf_name or "VOID//CTF" -%}
+{%- if "//" in _wm -%}
+  {%- set _wm_parts = _wm.split("//", 1) -%}
+  {{ _wm_parts[0] }}<span class="void-slash">//</span>{{ _wm_parts[1] }}
+{%- else -%}
+  {{ _wm }}
+{%- endif -%}

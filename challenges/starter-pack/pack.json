@@ -1,0 +1,104 @@
+{
+  "name": "VOID//CTF starter pack",
+  "description": "Six beginner-friendly training challenges. All data is synthetic or fictional; the web target runs only on your machine.",
+  "challenges": [
+    {
+      "key": "signal-noise",
+      "name": "Signal in the Noise",
+      "category": "Cryptography",
+      "value": 100,
+      "description": "Our relay intercepted a short transmission. It looks like random noise, but the operator swears it is \"just wrapped twice\".\n\n```\nNjY2YzYxNjc3YjY1Nzg2MTZkNzA2YzY1NWY2YzYxNzk2NTcyNjU2NDVmNjU2ZTYzNmY2NDY5NmU2Nzdk\n```\n\nUnwrap it and submit the flag.",
+      "flags": [{ "content": "flag{example_layered_encoding}", "type": "static", "data": "" }],
+      "tags": ["easy", "featured", "encoding"],
+      "hints": [
+        { "title": "Padding", "content": "The outer layer uses an alphabet of 64 characters. What does the decoded text look like next?", "cost": 0 },
+        { "title": "Second layer", "content": "Only the characters 0-9 and a-f appear after the first decode. Two of them make one byte.", "cost": 25 }
+      ],
+      "files": [],
+      "max_attempts": 0
+    },
+    {
+      "key": "ghost-metadata",
+      "name": "Ghost in the Metadata",
+      "category": "Digital Forensics",
+      "value": 150,
+      "description": "A frame was exported from a (fictional) harbor CCTV system. The picture shows nothing interesting — but image files carry more than pixels.\n\nInspect the attachment and recover the operator's note.",
+      "flags": [{ "content": "flag{example_metadata_never_lies}", "type": "static", "data": "" }],
+      "tags": ["easy", "featured", "metadata"],
+      "hints": [
+        { "title": "Tools", "content": "Try `exiftool`, `strings`, or any PNG chunk viewer.", "cost": 10 }
+      ],
+      "files": ["files/surveillance_frame.png"],
+      "max_attempts": 0
+    },
+    {
+      "key": "lighthouse",
+      "name": "The Lighthouse Keeper",
+      "category": "OSINT",
+      "value": 200,
+      "description": "A training dossier on a **fictional** person has been prepared for you. Everything you need is inside the attachment — do not search the real internet.\n\nFind the town where Mara Velsk grew up and the year her lighthouse was decommissioned.\n\nFlag format: `flag{example_<town>_<year>}` (lowercase).",
+      "flags": [{ "content": "flag{example_saltmere_1987}", "type": "static", "data": "case_insensitive" }],
+      "tags": ["medium", "fictional", "correlation"],
+      "hints": [
+        { "title": "Dates", "content": "A birthday post and its date tell you more than the age.", "cost": 25 }
+      ],
+      "files": ["files/mara_velsk_dossier.txt"],
+      "max_attempts": 10
+    },
+    {
+      "key": "staff-portal",
+      "name": "Staff Only",
+      "category": "Web Exploitation",
+      "value": 200,
+      "description": "The (fictional) Saltmere Harbor Authority runs a staff portal. Staff tools are \"hidden\", and the portal decides who you are in a way that might be a little too trusting.\n\nThe target runs **only on your own machine** as part of the training environment — see the connection info below.",
+      "connection_info": "http://localhost:8081",
+      "flags": [{ "content": "flag{example_trust_no_cookie}", "type": "static", "data": "" }],
+      "tags": ["medium", "access-control", "local-target"],
+      "hints": [
+        { "title": "Where to look", "content": "Well-behaved crawlers read a certain text file before indexing a site.", "cost": 0 },
+        { "title": "Who am I?", "content": "Open your browser's developer tools and look at the cookies this site sets.", "cost": 50 }
+      ],
+      "files": [],
+      "max_attempts": 0
+    },
+    {
+      "key": "keypad",
+      "name": "Dial Tone",
+      "category": "Miscellaneous",
+      "value": 100,
+      "description": "Someone typed a message on an old phone keypad. Each group of digits is one character, and `0` stands for an underscore.\n\n```\n33 99 2 6 7 555 33 0 55 33 999 7 2 3 0 7777 444 4 66 2 555 7777\n```\n\nWrap the decoded text as `flag{...}`.",
+      "flags": [{ "content": "flag{example_keypad_signals}", "type": "static", "data": "case_insensitive" }],
+      "tags": ["easy", "logic"],
+      "hints": [
+        { "title": "Multi-tap", "content": "Pressing 2 once is A, twice is B, three times is C.", "cost": 10 }
+      ],
+      "files": [],
+      "max_attempts": 0
+    },
+    {
+      "key": "deep-signal",
+      "name": "Deep Signal",
+      "category": "Reverse Engineering",
+      "value": 250,
+      "description": "This password checker was recovered from a training workstation. Figure out which password it accepts — that password is the flag.\n\nYou can read the script without running it. If you do run it, it only compares a string and prints a result.\n\n*Unlocks after you solve **Signal in the Noise**.*",
+      "flags": [{ "content": "flag{example_xor_is_reversible}", "type": "static", "data": "" }],
+      "tags": ["medium", "xor"],
+      "hints": [
+        { "title": "Symmetry", "content": "XOR-ing twice with the same key gives back the original bytes.", "cost": 50 }
+      ],
+      "files": ["files/checker.py"],
+      "max_attempts": 0,
+      "requires": ["signal-noise"],
+      "anonymize": "preview"
+    }
+  ],
+  "pages": [
+    {
+      "route": "rules",
+      "title": "Rules",
+      "format": "markdown",
+      "content_file": "pages/rules.md"
+    }
+  ],
+  "index_page_file": "pages/briefing.md"
+}

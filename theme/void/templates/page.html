@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{#- The index route ("/") gets the VOID landing page. Its admin-editable Page
+    content (Admin → Pages → index) is shown as the "Briefing" section.
+    Every other Page renders as a terminal document. -#}
+{% set _is_home = request.endpoint == 'views.static_html' and (request.view_args or {}).get('route') == 'index' %}
+{% set _ts = Configs.theme_settings if (Configs.theme_settings is mapping) else {} %}
+{# CTFd's setup wizard creates a placeholder index page; hide it until the organizer writes a real briefing #}
+{% set _has_briefing = content and ('A cool CTF platform from' not in content) %}
+
+{% block body_class %}{{ 'void-home' if _is_home else 'void-doc' }}{% endblock %}
+
+{% block content %}
+{% if _is_home %}
+  <section class="void-hero" aria-labelledby="void-hero-title">
+    <div class="container-xl">
+      <div class="row g-4 g-xl-5 align-items-center">
+        <div class="col-lg-7">
+          <p class="void-hero-kicker">
+            <span data-void-status data-paused="{{ 'true' if Configs.paused else 'false' }}" class="void-chip">…</span>
+            <span class="void-label">{{ _ts.get("event_label") or "cyber range // season 01" }}</span>
+          </p>
+          <div class="void-wordmark" aria-hidden="true">{% include "components/wordmark.html" %}</div>
+          <p class="void-tagline">{{ _ts.get("tagline") or "ENTER THE VOID. CAPTURE THE FLAG." }}</p>
+          <h1 id="void-hero-title" class="void-hero-title">
+            <span class="void-prompt-mark" aria-hidden="true">&gt;</span> ACCESS THE CHALLENGE NETWORK<span class="void-cursor" aria-hidden="true"></span>
+          </h1>
+          <p class="void-hero-intro">
+            {{ _ts.get("intro") or "A hands-on cybersecurity competition. Break ciphers, dissect files, trace fictional targets and exploit deliberately vulnerable services — then submit flags to climb the live scoreboard." }}
+          </p>
+
+          <div class="void-hero-actions">
+            {% if authed() %}
+              <a class="btn btn-primary btn-lg void-btn" href="{{ url_for('challenges.listing') }}">
+                <i class="fas fa-terminal me-2" aria-hidden="true"></i>ENTER THE ARENA
+              </a>
+            {% elif registration_visible() %}
+              <a class="btn btn-primary btn-lg void-btn" href="{{ url_for('auth.register') }}">
+                <i class="fas fa-power-off me-2" aria-hidden="true"></i>INITIALIZE SESSION
+              </a>
+              <a class="btn btn-outline-light btn-lg void-btn-ghost" href="{{ url_for('auth.login') }}">{% trans %}login{% endtrans %}</a>
+            {% else %}
+              <a class="btn btn-primary btn-lg void-btn" href="{{ url_for('auth.login') }}">
+                <i class="fas fa-power-off me-2" aria-hidden="true"></i>INITIALIZE SESSION
+              </a>
+            {% endif %}
+            {% if Configs.account_visibility != 'admins' and Configs.score_visibility != 'admins' %}
+              <a class="void-textlink" href="{{ url_for('scoreboard.listing') }}">view scoreboard <span aria-hidden="true">→</span></a>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="void-panel void-term" aria-label="{% trans %}System status{% endtrans %}">
+            <div class="void-panel-head">
+              <span class="void-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+              <span class="void-panel-title">void@arena: ~</span>
+              <span class="ms-auto void-label">tty1</span>
+            </div>
+            <div class="void-term-body" id="void-boot">
+              <p class="void-term-line"><span class="void-prompt">void --status</span></p>
+              <p class="void-term-line"><span class="void-ok" data-boot="status">[ .. ]</span> competition<span class="void-leader"></span><span data-boot-val="status">checking</span></p>
+              <p class="void-term-line"><span class="void-ok" data-boot="challenges">[ .. ]</span> challenge network<span class="void-leader"></span><span data-boot-val="challenges">probing</span></p>
+              <p class="void-term-line"><span class="void-ok" data-boot="scoreboard">[ .. ]</span> scoreboard<span class="void-leader"></span><span data-boot-val="scoreboard">syncing</span></p>
+              <p class="void-term-line"><span class="void-ok" data-boot="registration" data-tone="{{ 'green' if registration_visible() else 'amber' }}">[{{ ' OK ' if registration_visible() else 'LOCK' }}]</span> registration<span class="void-leader"></span><span>{{ 'open' if registration_visible() else 'closed' }}</span></p>
+              <p class="void-term-line"><span class="void-ok" data-boot="session"{% if authed() %} data-tone="green"{% endif %}>[{{ ' OK ' if authed() else ' -- ' }}]</span> session<span class="void-leader"></span><span>{{ (User.name | lower) if authed() else 'guest' }}</span></p>
+
+              <div class="void-countdown" data-void-countdown hidden>
+                <div class="void-label" data-void-countdown-label>ends in</div>
+                <div class="void-countdown-clock" aria-hidden="true">
+                  <span><b data-unit="d">00</b><small>days</small></span>
+                  <span><b data-unit="h">00</b><small>hrs</small></span>
+                  <span><b data-unit="m">00</b><small>min</small></span>
+                  <span><b data-unit="s">00</b><small>sec</small></span>
+                </div>
+                <span class="visually-hidden" data-void-countdown-sr></span>
+              </div>
+              <p class="void-term-line void-term-last"><span class="void-prompt"></span><span class="void-cursor" aria-hidden="true"></span></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <dl class="void-stats" id="void-stats" aria-label="{% trans %}Competition statistics{% endtrans %}">
+        <div class="void-stat">
+          <dt><i class="fas fa-flag" aria-hidden="true"></i> challenges</dt>
+          <dd data-stat="challenges">—</dd>
+        </div>
+        <div class="void-stat">
+          <dt><i class="fas fa-user-astronaut" aria-hidden="true"></i> players</dt>
+          <dd data-stat="players">—</dd>
+        </div>
+        {% if Configs.user_mode == 'teams' %}
+        <div class="void-stat">
+          <dt><i class="fas fa-users" aria-hidden="true"></i> teams</dt>
+          <dd data-stat="teams">—</dd>
+        </div>
+        {% endif %}
+        <div class="void-stat">
+          <dt><i class="fas fa-check-double" aria-hidden="true"></i> flags captured</dt>
+          <dd data-stat="solves">—</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="container-xl void-home-grid">
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <div class="void-section-head">
+          <h2 class="void-h2"><span class="text-accent" aria-hidden="true">01</span> {% trans %}featured challenges{% endtrans %}</h2>
+          <a class="void-textlink" href="{{ url_for('challenges.listing') }}">all challenges <span aria-hidden="true">→</span></a>
+        </div>
+        <div id="void-featured" class="void-featured" aria-live="polite">
+          <div class="void-loading"><span class="void-spinner" aria-hidden="true"></span>loading challenge index…</div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="void-section-head">
+          <h2 class="void-h2"><span class="text-accent" aria-hidden="true">02</span> {% trans %}top{% endtrans %} {{ get_mode_as_word(plural=True) }}</h2>
+        </div>
+        <div class="void-panel void-top" id="void-top" aria-live="polite">
+          <div class="void-loading"><span class="void-spinner" aria-hidden="true"></span>reading scoreboard…</div>
+        </div>
+      </div>
+    </div>
+
+    {% if _has_briefing %}
+      <div class="void-section-head mt-5">
+        <h2 class="void-h2"><span class="text-accent" aria-hidden="true">03</span> {% trans %}briefing{% endtrans %}</h2>
+      </div>
+      <article class="void-panel void-doc-body void-briefing">
+        {{ content | safe }}
+      </article>
+    {% endif %}
+  </section>
+
+  <script type="application/json" id="void-home-config">{{ {
+    "challengesUrl": url_for('challenges.listing'),
+    "scoreboardVisible": (Configs.account_visibility != 'admins' and Configs.score_visibility != 'admins'),
+    "featuredTag": _ts.get("featured_tag") or "featured",
+    "authed": authed(),
+    "freeze": Configs.freeze,
+  } | tojson }}</script>
+{% else %}
+  <div class="void-header">
+    <div class="container-xl">
+      <p class="void-path" aria-hidden="true"><span class="text-accent">void</span>:~/{{ (request.view_args or {}).get('route', '') }}$ cat README</p>
+      <h1>{{ title or Configs.ctf_name }}</h1>
+    </div>
+  </div>
+  <div class="container-xl">
+    <article class="void-panel void-doc-body">
+      {{ content | safe }}
+    </article>
+  </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+  {% if _is_home %}
+    {{ Assets.js("assets/js/home.js") }}
+  {% else %}
+    {{ Assets.js("assets/js/page.js") }}
+  {% endif %}
+{% endblock %}

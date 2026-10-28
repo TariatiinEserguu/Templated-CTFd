@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block body_class %}void-board-page{% endblock %}
+
+{% block content %}
+  <div class="void-header">
+    <div class="container-xl">
+      <p class="void-path" aria-hidden="true"><span class="text-accent">{{ (User.name or 'guest') | lower }}@void</span>:~/challenges$ ls -la</p>
+      <h1>{% trans %}Challenge Board{% endtrans %}</h1>
+      <p class="void-header-sub">{% trans %}Select a target, capture the flag, submit it for points. Flags look like{% endtrans %} <code>flag{...}</code>{% trans %} unless a challenge says otherwise.{% endtrans %}</p>
+    </div>
+  </div>
+
+  <div class="container-xl">
+    {% include "components/errors.html" %}
+
+    <div
+      x-data="ChallengeBoard"
+      @load-challenges.window="loadChallenges()"
+      @load-challenge.window="loadChallenge($event.detail)"
+    >
+      <div
+          x-ref="challengeWindow" id="challenge-window" class="modal fade void-modal" tabindex="-1" role="dialog"
+          aria-label="{% trans %}Challenge{% endtrans %}" x-data=""
+          x-html="$store.challenge.data.view"
+      ></div>
+
+      <div x-show="!loaded" class="void-loading">
+        <span class="void-spinner" aria-hidden="true"></span>
+        <span>{% trans %}indexing challenge network…{% endtrans %}</span>
+      </div>
+
+      <div x-show="loaded" x-cloak>
+        {# Progress + toolbar #}
+        <div class="void-board-top">
+          <div class="void-progress-card void-panel" x-show="challenges.length">
+            <div class="void-label">{% trans %}progress{% endtrans %}</div>
+            <div class="void-progress-figures">
+              <span><strong x-text="solvedCount()"></strong> / <span x-text="playable().length"></span> {% trans %}solved{% endtrans %}</span>
+              <span class="text-muted"><strong class="text-accent" x-text="earnedPoints()"></strong> / <span x-text="totalPoints()"></span> pts</span>
+            </div>
+            <div class="progress" role="progressbar" aria-label="{% trans %}Challenges solved{% endtrans %}" :aria-valuenow="solvedCount()" aria-valuemin="0" :aria-valuemax="playable().length">
+              <div class="progress-bar" :style="`width: ${playable().length ? (solvedCount() / playable().length) * 100 : 0}%`"></div>
+            </div>
+          </div>
+
+          <div class="void-toolbar" role="search" aria-label="{% trans %}Filter challenges{% endtrans %}">
+            <div class="void-search">
+              <label for="void-search" class="visually-hidden">{% trans %}Search challenges by name, category or tag{% endtrans %}</label>
+              <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+              <input id="void-search" type="search" class="form-control" placeholder="grep name, category, #tag…" x-model.debounce.150ms="query" autocomplete="off" spellcheck="false">
+            </div>
+
+            <div class="void-select">
+              <label for="void-sort" class="void-label">{% trans %}sort{% endtrans %}</label>
+              <select id="void-sort" class="form-select" x-model="sort">
+                <option value="default">{% trans %}by category{% endtrans %}</option>
+                <option value="points-asc">{% trans %}points ↑{% endtrans %}</option>
+                <option value="points-desc">{% trans %}points ↓{% endtrans %}</option>
+                <option value="solves-desc">{% trans %}most solved{% endtrans %}</option>
+                <option value="solves-asc">{% trans %}least solved{% endtrans %}</option>
+                <option value="name">{% trans %}name A–Z{% endtrans %}</option>
+              </select>
+            </div>
+
+            <div class="void-seg" role="group" aria-label="{% trans %}Solve status{% endtrans %}">
+              <button type="button" :aria-pressed="status === 'all'" @click="status = 'all'">{% trans %}all{% endtrans %}</button>
+              <button type="button" :aria-pressed="status === 'unsolved'" @click="status = 'unsolved'">{% trans %}unsolved{% endtrans %}</button>
+              <button type="button" :aria-pressed="status === 'solved'" @click="status = 'solved'">{% trans %}solved{% endtrans %}</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="void-cats" role="group" aria-label="{% trans %}Category{% endtrans %}" x-show="challenges.length">
+          <button type="button" class="void-cat" :aria-pressed="category === null" @click="category = null">
+            <i class="fas fa-layer-group" aria-hidden="true"></i> {% trans %}all{% endtrans %}
+            <span class="void-cat-count" x-text="challenges.length"></span>
+          </button>
+          <template x-for="cat in getCategories()" :key="cat">
+            <button type="button" class="void-cat" :aria-pressed="category === cat" @click="category = (category === cat ? null : cat)">
+              <i class="fas" :class="icon(cat)" aria-hidden="true"></i>
+              <span x-text="cat"></span>
+              <span class="void-cat-count" x-text="`${solvedIn(cat)}/${countIn(cat)}`"></span>
+            </button>
+          </template>
+        </div>
+
+        <p class="void-result-count" aria-live="polite" x-show="challenges.length" x-text="resultSummary()"></p>
+
+        {# Grouped by category (default sort) or flat (other sorts) #}
+        <template x-for="group in groups()" :key="group.key">
+          <section class="void-cat-section" :aria-labelledby="'cat-' + group.slug">
+            <template x-if="group.title">
+              <div class="void-cat-head">
+                <h2 :id="'cat-' + group.slug">
+                  <i class="fas" :class="icon(group.title)" aria-hidden="true"></i>
+                  <span class="text-muted">~/</span><span x-text="group.slug"></span>
+                </h2>
+                <span class="void-cat-meta" x-text="`${group.items.filter(c => c.solved_by_me).length}/${group.items.length} solved`"></span>
+                <span class="void-cat-rule" aria-hidden="true"></span>
+              </div>
+            </template>
+            <template x-if="!group.title">
+              <h2 class="visually-hidden" :id="'cat-' + group.slug">{% trans %}Results{% endtrans %}</h2>
+            </template>
+
+            <div class="void-grid">
+              <template x-for="c in group.items" :key="c.id">
+                <button
+                  type="button"
+                  class="void-card challenge-button"
+                  :class="{
+                    'is-solved': c.solved_by_me,
+                    'is-locked': c.type === 'hidden',
+                  }"
+                  :value="c.id"
+                  :disabled="c.type === 'hidden'"
+                  :aria-disabled="c.type === 'hidden'"
+                  :aria-label="cardLabel(c)"
+                  @click="c.type !== 'hidden' && loadChallenge(c.id)"
+                >
+                  <span class="void-card-top">
+                    <span class="void-card-cat"><i class="fas" :class="icon(c.category)" aria-hidden="true"></i><span x-text="c.category"></span></span>
+                    <template x-if="c.type === 'hidden'">
+                      <span class="void-chip is-amber"><i class="fas fa-lock" aria-hidden="true"></i>{% trans %}locked{% endtrans %}</span>
+                    </template>
+                    <template x-if="c.type !== 'hidden' && c.solved_by_me">
+                      <span class="void-chip is-green"><i class="fas fa-check" aria-hidden="true"></i>{% trans %}solved{% endtrans %}</span>
+                    </template>
+                    <template x-if="c.type !== 'hidden' && !c.solved_by_me">
+                      <span class="void-chip"><i class="fas fa-crosshairs" aria-hidden="true"></i>{% trans %}open{% endtrans %}</span>
+                    </template>
+                  </span>
+
+                  <span class="void-card-title" x-text="c.name"></span>
+
+                  <span class="void-tags" x-show="tagsOf(c).length">
+                    <template x-for="t in tagsOf(c)" :key="t">
+                      <span class="void-tag" x-text="'#' + t"></span>
+                    </template>
+                  </span>
+
+                  <span class="void-card-foot">
+                    <span class="void-card-pts"><strong x-text="c.value"></strong> pts</span>
+                    <template x-if="difficulty(c)">
+                      <span class="void-diff" :data-level="difficulty(c).level">
+                        <span class="void-diff-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                        <span x-text="difficulty(c).label"></span>
+                      </span>
+                    </template>
+                    <template x-if="c.solves !== null && c.solves !== undefined">
+                      <span class="void-card-solves" x-text="`${c.solves} ${c.solves === 1 ? 'solve' : 'solves'}`"></span>
+                    </template>
+                  </span>
+                </button>
+              </template>
+            </div>
+          </section>
+        </template>
+
+        <template x-if="!challenges.length">
+          <div class="void-empty mt-4">
+            <div class="void-empty-icon"><i class="fas fa-satellite" aria-hidden="true"></i></div>
+            <strong>{% trans %}No challenges deployed yet{% endtrans %}</strong>
+            <span>{% trans %}Check back soon — organizers are still loading targets.{% endtrans %}</span>
+          </div>
+        </template>
+
+        <template x-if="challenges.length && !filtered().length">
+          <div class="void-empty mt-4">
+            <div class="void-empty-icon"><i class="fas fa-filter-circle-xmark" aria-hidden="true"></i></div>
+            <strong>{% trans %}grep: no matches{% endtrans %}</strong>
+            <span>{% trans %}No challenge matches the current filters.{% endtrans %}</span>
+            <div><button type="button" class="btn btn-sm btn-outline-light void-btn-ghost mt-3" @click="resetFilters()">{% trans %}reset filters{% endtrans %}</button></div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ Assets.js("assets/js/challenges.js") }}
+{% endblock %}

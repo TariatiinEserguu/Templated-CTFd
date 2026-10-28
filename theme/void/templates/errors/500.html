@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% from "macros/void.html" import error_screen with context %}
+
+{% block content %}
+  {{ error_screen(500, _("500 Internal Server Error"), _("Something broke on the server. The organizers can check the application logs."), "fa-bug") }}
+{% endblock %}

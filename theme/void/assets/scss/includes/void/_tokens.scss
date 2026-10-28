@@ -1,0 +1,48 @@
+/* Design tokens
+   Every custom VOID component reads these variables, so a theme
+   re-skin only needs edits here and in main.scss.
+-------------------------------------------------- */
+
+:root,
+[data-bs-theme="dark"] {
+  --void-bg: #080b10;
+  --void-bg-raised: #0c121a;
+  --void-panel: #101720;
+  --void-panel-hi: #151e2a;
+  --void-line: #1f2b3a;
+  --void-line-hi: #2c3b4f;
+
+  --void-text: #e6edf3;
+  --void-muted: #8b9bb4;
+  --void-dim: #5d6b80;
+
+  --void-green: #39ff88;
+  --void-green-rgb: 57, 255, 136;
+  --void-cyan: #00d9ff;
+  --void-cyan-rgb: 0, 217, 255;
+  --void-amber: #ffb84d;
+  --void-amber-rgb: 255, 184, 77;
+  --void-red: #ff6b7a;
+  --void-red-rgb: 255, 107, 122;
+
+  --void-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  --void-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --void-radius: 10px;
+  --void-radius-sm: 6px;
+  --void-nav-h: 60px;
+  --void-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --void-fast: 160ms;
+  --void-glow: 0 0 0 1px rgba(var(--void-green-rgb), 0.35), 0 0 18px rgba(var(--void-green-rgb), 0.12);
+  --void-glow-cyan: 0 0 0 1px rgba(var(--void-cyan-rgb), 0.4), 0 0 18px rgba(var(--void-cyan-rgb), 0.12);
+
+  // Bootstrap overrides that need the token values
+  --bs-body-bg: var(--void-bg);
+  --bs-body-color: var(--void-text);
+  --bs-border-color: var(--void-line);
+  --bs-secondary-color: var(--void-muted);
+  --bs-tertiary-bg: var(--void-panel);
+  --bs-emphasis-color: #ffffff;
+  --bs-code-color: var(--void-green);
+  --bs-focus-ring-color: rgba(var(--void-cyan-rgb), 0.45);
+}

@@ -1,0 +1,406 @@
+{#- Challenge window. Challenge-type plugins extend this template and may override
+    any of the blocks below, so block names match CTFd's core theme. Flags are only
+    ever checked server-side through CTFd's attempt API. -#}
+{% set _diff = namespace(label=None, level=0) %}
+{% for t in (tags or []) %}
+  {% set _tv = t | lower | replace("difficulty", "") | replace(":", "") | replace("=", "") | trim %}
+  {% if _tv in ("beginner", "easy") %}{% set _diff.label = _tv %}{% set _diff.level = 1 %}
+  {% elif _tv in ("medium", "normal") %}{% set _diff.label = _tv %}{% set _diff.level = 2 %}
+  {% elif _tv == "hard" %}{% set _diff.label = _tv %}{% set _diff.level = 3 %}
+  {% elif _tv in ("insane", "expert") %}{% set _diff.label = _tv %}{% set _diff.level = 4 %}
+  {% endif %}
+{% endfor %}
+{% set _cat_slug = (challenge.category or "misc") | lower | replace(" ", "_") %}
+
+<div :class="getStyles()" role="document" x-data="Challenge" x-init='id = {{ challenge.id }}; max_attempts = {{ max_attempts }}; attempts = {{ attempts }}; ratingValue = {{ (rating.get('value') if rating else None) | tojson }}; ratingReview = {{ (rating.get('review', '') if rating else None) | tojson }};'>
+  <div class="modal-content void-modal-content">
+    <div class="void-panel-head void-modal-head">
+      <span class="void-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+      <span class="void-panel-title text-truncate">~/challenges/{{ _cat_slug }}/{{ challenge.id }}</span>
+      <button type="button" class="btn-close ms-auto" data-bs-dismiss="modal" aria-label="{% trans %}Close{% endtrans %}"></button>
+    </div>
+
+    <div class="modal-body void-modal-body">
+      <ul class="nav nav-tabs void-tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" data-bs-target="#challenge" role="tab" @click="showChallenge()">
+            <i class="fas fa-file-code me-1" aria-hidden="true"></i>{% trans %}brief{% endtrans %}
+          </button>
+        </li>
+
+        {% block submissions %}
+          {% if Configs.view_self_submissions %}
+          <li class="nav-item" role="presentation">
+            <button class="nav-link challenge-submissions" data-bs-target="#submissions" role="tab" @click="showSubmissions()">
+              <i class="fas fa-clock-rotate-left me-1" aria-hidden="true"></i>{% trans %}my attempts{% endtrans %}
+            </button>
+          </li>
+          {% endif %}
+        {% endblock %}
+
+        {% block solution %}
+          <li class="nav-item" role="presentation" x-show="getSolutionId()">
+            <button class="nav-link challenge-solution" data-bs-target="#solution" role="tab" @click="showSolution()">
+              <i class="fas fa-book-open me-1" aria-hidden="true"></i>{% trans %}solution{% endtrans %}
+            </button>
+          </li>
+        {% endblock %}
+
+        {% block solves %}
+          {% if solves != None %}
+          <li class="nav-item" role="presentation">
+            <button class="nav-link challenge-solves" data-bs-target="#solves" role="tab" @click="showSolves()">
+              <i class="fas fa-users me-1" aria-hidden="true"></i>{{ ngettext("%(num)d solve", "%(num)d solves", solves) }}
+            </button>
+          </li>
+          {% endif %}
+        {% endblock %}
+      </ul>
+
+      <div class="tab-content">
+        <div role="tabpanel" class="tab-pane fade show active" id="challenge">
+          <header class="void-chal-head">
+            <div class="void-chal-meta">
+              <span class="void-card-cat"><i class="fas fa-folder-open" aria-hidden="true"></i>{{ challenge.category }}</span>
+              {% set _solved_js = (solved_by_me | tojson) ~ " || (response && response.data.status == 'correct')" %}
+              <span class="void-chip is-green" x-show="{{ _solved_js }}"{% if not solved_by_me %} style="display: none"{% endif %}><i class="fas fa-check" aria-hidden="true"></i>{% trans %}solved{% endtrans %}</span>
+              <span class="void-chip" x-show="!({{ _solved_js }})"{% if solved_by_me %} style="display: none"{% endif %}><i class="fas fa-crosshairs" aria-hidden="true"></i>{% trans %}unsolved{% endtrans %}</span>
+              {% if _diff.label %}
+                <span class="void-diff" data-level="{{ _diff.level }}">
+                  <span class="void-diff-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>{{ _diff.label }}
+                </span>
+              {% endif %}
+            </div>
+            <h2 class="challenge-name void-chal-name">{{ challenge.name }}</h2>
+            <div class="void-chal-stats">
+              <span class="challenge-value void-chal-points"><strong>{{ challenge.value }}</strong> pts</span>
+              {% if solves != None %}
+                <span class="text-muted">· {{ ngettext("%(num)d solve", "%(num)d solves", solves) }}</span>
+              {% endif %}
+            </div>
+
+            {% if tags %}
+              <div class="challenge-tags void-tags">
+                {% block tags %}
+                  {# difficulty and "featured" tags drive presentation and are not listed #}
+                  {% set _ft = ((Configs.theme_settings if Configs.theme_settings is mapping else {}).get("featured_tag") or "featured") | lower %}
+                  {% for tag in tags %}
+                    {% set _tl = tag | lower | replace("difficulty", "") | replace(":", "") | replace("=", "") | trim %}
+                    {% if _tl not in ("beginner", "easy", "medium", "normal", "hard", "insane", "expert") and (tag | lower) != _ft %}
+                      <span class="challenge-tag void-tag">#{{ tag }}</span>
+                    {% endif %}
+                  {% endfor %}
+                {% endblock %}
+              </div>
+            {% endif %}
+
+            <small class="challenge-attribution text-muted d-block">
+              {% block attribution %}{{ challenge.byline }}{% endblock %}
+            </small>
+
+            {% if Configs.challenge_ratings == "public" %}
+            <small class="challenge-ratings text-muted d-block">
+              {% block ratings %}
+                {% if ratings %}
+                  <span><i class="fa-solid fa-thumbs-up" aria-hidden="true"></i> {{ ratings.up }}</span>
+                  <span class="px-2">
+                    {% if ratings.count %}
+                    ({{ ((ratings.up / (ratings.count)) * 100) | int }}% liked)
+                    {% endif %}
+                  </span>
+                  <span><i class="fa-solid fa-thumbs-down" aria-hidden="true"></i> {{ ratings.down }}</span>
+                {% endif %}
+              {% endblock %}
+            </small>
+            {% endif %}
+          </header>
+
+          <div class="challenge-desc void-doc-body">{% block description %}{{ challenge.html }}{% endblock %}</div>
+
+          {% if challenge.connection_info %}
+            <div class="void-block">
+              <div class="void-label mb-1"><i class="fas fa-plug me-1" aria-hidden="true"></i>{% trans %}connection{% endtrans %}</div>
+              <span class="challenge-connection-info">
+                {% block connection_info %}
+                  {% set conn = challenge.connection_info %}
+                  {% if not conn %}
+                  {% elif conn.startswith("http") %}
+                    {{ conn | urlize(target="_blank") }}
+                  {% else %}
+                    <code>{{ conn }}</code>
+                  {% endif %}
+                {% endblock %}
+              </span>
+            </div>
+          {% endif %}
+
+          {% if files %}
+            <div class="void-block challenge-files">
+              <div class="void-label mb-2"><i class="fas fa-paperclip me-1" aria-hidden="true"></i>{% trans %}attachments{% endtrans %}</div>
+              <ul class="void-files">
+                {% for file in files %}
+                  {% set segments = file.split('/') %}
+                  {% set token = file.split('?') | last %}
+                  {% if token %}
+                    {% set filename = segments | last | replace("?" + token, "") %}
+                  {% else %}
+                    {% set filename = segments | last %}
+                  {% endif %}
+                  <li>
+                    <a class="void-file btn-file" href="{{ file }}" title="{{ filename }}" download>
+                      <i class="fas fa-file-arrow-down" aria-hidden="true"></i>
+                      <span class="text-truncate">{{ filename }}</span>
+                      <span class="void-file-dl">{% trans %}download{% endtrans %}</span>
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+
+          {% if hints %}
+            <div class="void-block challenge-hints hint-row">
+              <div class="void-label mb-2"><i class="fas fa-lightbulb me-1" aria-hidden="true"></i>{% trans %}hints{% endtrans %}</div>
+              {% for hint in hints | sort(attribute="cost") %}
+                <div x-data="Hint" x-init="id = {{ hint.id }}" class="void-hint">
+                  {% if hint.content %}
+                  <details>
+                    <summary>{% trans %}View hint{% endtrans %}{% if hint.title %}: {{ hint.title }}{% endif %}</summary>
+                    <div class="void-hint-body">{{ hint.html | safe }}</div>
+                  </details>
+                  {% else %}
+                  <details @toggle="showHint(event)">
+                    {% if hint.title %}
+                    <summary>{{ hint.title }} <span class="void-chip is-amber ms-1">{{ hint.cost }} pt{{ hint.cost|pluralize }}</span></summary>
+                    {% else %}
+                    <summary>{% trans %}Unlock hint{% endtrans %} <span class="void-chip is-amber ms-1">{{ hint.cost }} pt{{ hint.cost|pluralize }}</span></summary>
+                    {% endif %}
+                    <div class="void-hint-body" x-html="html"></div>
+                  </details>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div class="void-submit">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <label for="challenge-input" class="void-label mb-0"><i class="fas fa-flag me-1" aria-hidden="true"></i>{% trans %}submit flag{% endtrans %}</label>
+              <template x-if="max_attempts > 0">
+                <span class="void-chip" :class="attempts >= max_attempts ? 'is-red' : 'is-amber'">
+                  <span x-text="attempts"></span>/<span x-text="max_attempts"></span> {% trans c=max_attempts %}attempt{% pluralize %}attempts{% endtrans %}
+                </span>
+              </template>
+            </div>
+            <div class="row g-2 submit-row">
+              <div class="col-12 col-sm">
+                {% block input %}
+                  <input
+                      id="challenge-id" class="challenge-id" type="hidden"
+                      value="{{ challenge.id }}"
+                  >
+                  <div class="void-flag-input">
+                    <span class="void-flag-caret" aria-hidden="true">&gt;</span>
+                    <input
+                        id="challenge-input" class="challenge-input form-control"
+                        type="text" name="submission" autocomplete="off" spellcheck="false" autocapitalize="off"
+                        @keyup.enter="submitChallenge()"
+                        placeholder="flag{...}" x-model="submission"
+                        aria-describedby="challenge-feedback"
+                    >
+                  </div>
+                {% endblock %}
+              </div>
+
+              <div class="col-12 col-sm-auto key-submit">
+                {% block submit %}
+                  <button
+                      id="challenge-submit"
+                      class="challenge-submit btn btn-primary void-btn w-100 h-100" type="submit"
+                      @click.debounce.500ms="submitChallenge()"
+                  >
+                    <i class="fas fa-paper-plane me-1" aria-hidden="true"></i>{% trans %}Submit{% endtrans %}
+                  </button>
+                {% endblock %}
+              </div>
+            </div>
+          </div>
+
+          <div class="row notification-row" id="challenge-feedback" aria-live="assertive">
+            <div class="col-12">
+              <template x-if="response">
+                {# This alert is re-used for all alerts, so it's important not to make it dismissible #}
+                <div class="alert void-result w-100 mt-3"
+                    :class="{
+                      'alert-success': response.data.status == 'correct',
+                      'alert-info': response.data.status == 'already_solved',
+                      'alert-danger': response.data.status == 'incorrect',
+                      'alert-warning': response.data.status == 'paused' || response.data.status == 'ratelimited',
+                    }" role="alert"
+                >
+                  <div class="void-result-line">
+                    <i class="fas" aria-hidden="true" :class="{
+                      'fa-circle-check': response.data.status == 'correct',
+                      'fa-circle-info': response.data.status == 'already_solved',
+                      'fa-circle-xmark': response.data.status == 'incorrect',
+                      'fa-triangle-exclamation': response.data.status == 'paused' || response.data.status == 'ratelimited',
+                    }"></i>
+                    <span class="void-result-code" x-text="{
+                      correct: 'ACCESS GRANTED',
+                      incorrect: 'ACCESS DENIED',
+                      already_solved: 'ALREADY CAPTURED',
+                      paused: 'PAUSED',
+                      ratelimited: 'RATE LIMITED',
+                    }[response.data.status] || 'NOTICE'"></span>
+                    <strong x-text="response.data.message"></strong>
+                  </div>
+                  <div x-show="(response.data.status == 'correct' || response.data.status == 'already_solved')">
+                    <div x-show="getNextId()">
+                      <button @click="nextChallenge()" class="btn btn-sm btn-outline-light void-btn-ghost mt-3">
+                        {% trans %}Next challenge{% endtrans %} <span aria-hidden="true">→</span>
+                      </button>
+                    </div>
+
+                    {% if Configs.social_shares %}
+                    <div>
+                      <button x-show="!share_url" @click="getShareUrl()" class="btn btn-sm btn-outline-info mt-3">
+                        <i class="fas fa-share-nodes me-1" aria-hidden="true"></i>{% trans %}Share{% endtrans %}
+                      </button>
+                      <div class="btn-group mt-3" role="group" x-show="share_url">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" @click="copyShareUrl()" data-bs-toggle="tooltip" data-bs-title="Copied!" aria-label="{% trans %}Copy share link{% endtrans %}">
+                          <i class="fa-solid fa-copy" aria-hidden="true"></i>
+                        </button>
+                        <a :href="'https://twitter.com/intent/tweet?url=' + encodeURIComponent(share_url)" role="button" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" aria-label="Share on X">
+                          <i class="fa-brands fa-twitter" aria-hidden="true"></i>
+                        </a>
+                        <a :href="'https://www.linkedin.com/shareArticle?url=' + encodeURIComponent(share_url)" role="button" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" aria-label="Share on LinkedIn">
+                          <i class="fa-brands fa-linkedin-in" aria-hidden="true"></i>
+                        </a>
+                      </div>
+                    </div>
+                    {% endif %}
+
+                    {% if Configs.challenge_ratings != "disabled" %}
+                    <div class="mt-3 void-rating">
+                      <hr>
+                      <p class="mb-2 void-label">{% trans %}Rate this challenge{% endtrans %}</p>
+                      <div class="rating-buttons mb-2" x-init="selectedRating = ratingValue || 0;">
+                        <button
+                          class="btn btn-sm btn-outline-success me-2"
+                          :class="{ 'active': selectedRating === 1 }" :aria-pressed="selectedRating === 1"
+                          @click="selectedRating = 1" aria-label="{% trans %}Thumbs up{% endtrans %}"
+                        >
+                          <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>
+                        </button>
+                        <button
+                          class="btn btn-sm btn-outline-danger"
+                          :class="{ 'active': selectedRating === -1 }" :aria-pressed="selectedRating === -1"
+                          @click="selectedRating = -1" aria-label="{% trans %}Thumbs down{% endtrans %}"
+                        >
+                          <i class="fa-solid fa-thumbs-down" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                      <label class="visually-hidden" for="void-review">{% trans %}Review{% endtrans %}</label>
+                      <textarea
+                        id="void-review"
+                        class="form-control"
+                        rows="2"
+                        x-model="ratingReview"
+                        placeholder="{% trans %}Write a review (optional){% endtrans %}"
+                        maxlength="2000"
+                      ></textarea>
+                      <button
+                        @click="submitRating()"
+                        class="btn btn-sm btn-primary void-btn mt-2"
+                        :disabled="!selectedRating"
+                      >
+                        {% trans %}Submit rating{% endtrans %}
+                      </button>
+                      <div x-show="ratingSubmitted" class="text-success mt-2">
+                        <small><i class="fas fa-check" aria-hidden="true"></i> {% trans %}Thank you for your rating!{% endtrans %}</small>
+                      </div>
+                    </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <div role="tabpanel" class="tab-pane fade" id="submissions">
+          <div class="table-responsive">
+            <table class="table void-table align-middle">
+              <thead>
+              <tr>
+                <th scope="col">{% trans %}Submission{% endtrans %}</th>
+                <th scope="col">{% trans %}Result{% endtrans %}</th>
+                <th scope="col">{% trans %}Date{% endtrans %}</th>
+              </tr>
+              </thead>
+              <tbody id="challenge-submission-names">
+              <template x-for="submission in submissions">
+                <tr>
+                  <td x-data="{ truncate: true }">
+                    <code x-text="truncate ? '*'.repeat(submission.provided.length) : submission.provided"></code>
+                    <button class="btn btn-link p-0 ps-1" @click="truncate = !truncate" :aria-label="truncate ? 'Reveal submission' : 'Hide submission'">
+                      <i :class="truncate ? 'fas fa-eye' : 'fas fa-eye-slash'" aria-hidden="true"></i>
+                    </button>
+                  </td>
+                  <td>
+                    <span class="void-chip" :class="submission.type === 'correct' ? 'is-green' : 'is-red'">
+                      <i class="fas" :class="submission.type === 'correct' ? 'fa-check' : 'fa-xmark'" aria-hidden="true"></i>
+                      <span x-text="submission.type"></span>
+                    </span>
+                  </td>
+                  <td class="text-muted" x-text="submission.date"></td>
+                </tr>
+              </template>
+              <template x-if="!submissions.length">
+                <tr><td colspan="3" class="text-center text-muted py-4">{% trans %}No attempts yet.{% endtrans %}</td></tr>
+              </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div role="tabpanel" class="tab-pane fade" id="solves">
+          <div class="table-responsive">
+            <table class="table void-table align-middle">
+              <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">{% trans %}Name{% endtrans %}</th>
+                <th scope="col">{% trans %}Date{% endtrans %}</th>
+              </tr>
+              </thead>
+              <tbody id="challenge-solves-names">
+              <template x-for="(solve, i) in solves">
+                <tr>
+                  <td class="text-muted mono" x-text="String(i + 1).padStart(2, '0')"></td>
+                  <td>
+                    <a :href="solve.account_url" x-text="solve.name"></a>
+                    <template x-if="i === 0"><span class="void-chip is-amber ms-2"><i class="fas fa-droplet" aria-hidden="true"></i>first blood</span></template>
+                  </td>
+                  <td class="text-muted" x-text="solve.date"></td>
+                </tr>
+              </template>
+              <template x-if="!solves.length">
+                <tr><td colspan="3" class="text-center text-muted py-4">{% trans %}No solves yet. Be the first.{% endtrans %}</td></tr>
+              </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div role="tabpanel" class="tab-pane fade" id="solution">
+          <div class="challenge-solution-content void-doc-body pt-3">
+            <template x-if="solution">
+              <div x-html="solution" style="white-space: pre-wrap;"></div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

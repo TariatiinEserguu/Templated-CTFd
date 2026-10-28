@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% from "macros/void.html" import error_screen with context %}
+
+{% block content %}
+  {{ error_screen(502, _("502 Bad Gateway"), _("The upstream service is not responding. Try again in a moment."), "fa-plug-circle-xmark") }}
+{% endblock %}

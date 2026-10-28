@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% from "macros/void.html" import error_screen with context %}
+
+{% block content %}
+  {{ error_screen(404, _("404 Not Found"), _("The requested path does not exist in the void."), "fa-ghost") }}
+{% endblock %}

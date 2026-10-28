@@ -1,0 +1,45 @@
+{#- Site footer with live competition info. Times are unix seconds from CTFd config,
+    formatted in the visitor's locale by components/void-ui.js. -#}
+{% set _ts = Configs.theme_settings if (Configs.theme_settings is mapping) else {} %}
+<footer class="void-footer" role="contentinfo">
+  <div class="container-xl">
+    <div class="void-footer-grid">
+      <div class="void-footer-brand">
+        <div class="void-footer-word">{% include "components/wordmark.html" %}</div>
+        <p class="void-footer-tag">{{ _ts.get("tagline") or "ENTER THE VOID. CAPTURE THE FLAG." }}</p>
+      </div>
+
+      <dl class="void-footer-meta">
+        <div>
+          <dt>{% trans %}status{% endtrans %}</dt>
+          <dd><span data-void-status data-paused="{{ 'true' if Configs.paused else 'false' }}">—</span></dd>
+        </div>
+        <div>
+          <dt>{% trans %}starts{% endtrans %}</dt>
+          <dd>{% if Configs.start %}<time data-void-unix="{{ Configs.start }}">{{ Configs.start }}</time>{% else %}{% trans %}not scheduled{% endtrans %}{% endif %}</dd>
+        </div>
+        <div>
+          <dt>{% trans %}ends{% endtrans %}</dt>
+          <dd>{% if Configs.end %}<time data-void-unix="{{ Configs.end }}">{{ Configs.end }}</time>{% else %}{% trans %}open-ended{% endtrans %}{% endif %}</dd>
+        </div>
+        <div>
+          <dt>{% trans %}mode{% endtrans %}</dt>
+          <dd>{{ "teams" if Configs.user_mode == "teams" else "solo" }}</dd>
+        </div>
+      </dl>
+
+      <nav class="void-footer-links" aria-label="{% trans %}Footer{% endtrans %}">
+        {% for page in get_pages() %}
+          <a href="{{ url_for('views.static_html', route=page.route) }}">{{ page.title }}</a>
+        {% endfor %}
+        {% if get_config('tos_url') or get_config('tos_text') %}<a href="{{ Configs.tos_link }}">{% trans %}Terms{% endtrans %}</a>{% endif %}
+        {% if get_config('privacy_url') or get_config('privacy_text') %}<a href="{{ Configs.privacy_link }}">{% trans %}Privacy{% endtrans %}</a>{% endif %}
+        <button type="button" class="void-linklike" data-void-palette-open>{% trans %}Command palette{% endtrans %} <kbd>/</kbd></button>
+      </nav>
+    </div>
+    <div class="void-footer-base">
+      <span>&copy; {{ Configs.ctf_name }}</span>
+      <a href="https://ctfd.io" rel="noopener" target="_blank">{% trans %}Powered by CTFd{% endtrans %}</a>
+    </div>
+  </div>
+</footer>

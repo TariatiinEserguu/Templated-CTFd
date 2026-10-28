@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% from "macros/void.html" import auth_panel with context %}
+
+{% block body_class %}void-auth-page{% endblock %}
+
+{% block content %}
+  <div class="container-xl">
+    {% call auth_panel(_("Create operator"), "register", _("Register an account to compete.")) %}
+      {% include "components/errors.html" %}
+
+      {% if integrations.mlc() %}
+        <a class="btn btn-outline-light w-100 void-btn-ghost" href="{{ url_for('auth.oauth_login') }}">
+          {% trans %}Login with Major League Cyber{% endtrans %}
+        </a>
+        <div class="void-or"><span>{% trans %}or{% endtrans %}</span></div>
+      {% endif %}
+
+      {% with form = Forms.auth.RegistrationForm() %}
+        {% from "macros/forms.html" import render_extra_fields %}
+
+        <form method="post" accept-charset="utf-8" role="form" class="void-form">
+          <div class="mb-3">
+            {{ form.name.label(class="form-label") }}
+            {{ form.name(class="form-control", value=name, autocomplete="username", required=True, autofocus=True, **{"aria-describedby": "reg-name-help"}) }}
+            <small id="reg-name-help" class="form-text text-muted">{% trans %}Your username on the site{% endtrans %}</small>
+          </div>
+
+          <div class="mb-3">
+            {{ form.email.label(class="form-label") }}
+            {{ form.email(class="form-control", value=email, autocomplete="email", required=True, **{"aria-describedby": "reg-email-help"}) }}
+            <small id="reg-email-help" class="form-text text-muted">{% trans %}Never shown to the public{% endtrans %}</small>
+          </div>
+
+          <div class="mb-3">
+            {{ form.password.label(class="form-label") }}
+            {{ form.password(class="form-control", value=password, autocomplete="new-password", required=True, **{"aria-describedby": "reg-pass-help"}) }}
+            <small id="reg-pass-help" class="form-text text-muted">{% trans %}Password used to log into your account{% endtrans %}</small>
+          </div>
+
+          {{ form.nonce() }}
+
+          {{ render_extra_fields(form.extra) }}
+
+          {{ form.submit(class="btn btn-primary void-btn w-100 mt-2", value=_("Register")) }}
+
+          {% if Configs.tos_or_privacy %}
+            <p class="small text-muted text-center mt-3 mb-0">
+              {% trans trimmed privacy_link=Configs.privacy_link, tos_link=Configs.tos_link %}
+              By registering, you agree to the
+              <a href="{{ privacy_link }}" target="_blank">privacy policy</a>
+              and <a href="{{ tos_link }}" target="_blank">terms of service</a>
+              {% endtrans %}
+            </p>
+          {% endif %}
+        </form>
+      {% endwith %}
+
+      <p class="void-auth-alt">{% trans %}Already registered?{% endtrans %} <a href="{{ url_for('auth.login') }}">{% trans %}Log in{% endtrans %} →</a></p>
+    {% endcall %}
+  </div>
+{% endblock %}

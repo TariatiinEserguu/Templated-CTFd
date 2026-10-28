@@ -1,0 +1,143 @@
+{#- VOID//CTF terminal navigation.
+    Active links get aria-current="page" and a "> " prompt marker. -#}
+{% set _ep = request.endpoint or "" %}
+{% set _menu_pages = get_pages() %}
+{% set _rules = _menu_pages | selectattr("route", "equalto", "rules") | list %}
+{% set _show_scores = Configs.account_visibility != 'admins' and Configs.score_visibility != 'admins' %}
+
+{% macro navlink(href, label, active, cmd=None) -%}
+  <li class="nav-item">
+    <a class="nav-link void-nav-link{{ ' active' if active }}" href="{{ href }}"{% if active %} aria-current="page"{% endif %}>
+      <span class="void-nav-prompt" aria-hidden="true">&gt;</span>{{ label }}
+    </a>
+  </li>
+{%- endmacro %}
+
+<a class="visually-hidden-focusable" href="#void-main">{% trans %}Skip to content{% endtrans %}</a>
+
+<nav class="navbar navbar-expand-lg fixed-top void-navbar" aria-label="{% trans %}Main navigation{% endtrans %}">
+  <div class="container-xl">
+    <a href="{{ url_for('views.static_html', route='/') }}" class="navbar-brand void-brand" aria-label="{{ Configs.ctf_name }} — {% trans %}home{% endtrans %}">
+      {% if Configs.ctf_logo %}
+        <img class="void-brand-logo" src="{{ url_for('views.files', path=Configs.ctf_logo) }}" alt="" height="26">
+      {% else %}
+        <span class="void-brand-mark" aria-hidden="true">&gt;_</span>
+      {% endif %}
+      <span class="void-brand-word">{% include "components/wordmark.html" %}</span>
+    </a>
+
+    <button
+        class="navbar-toggler void-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#void-navbars"
+        aria-controls="void-navbars" aria-expanded="false" aria-label="{% trans %}Toggle navigation{% endtrans %}"
+    >
+      <span></span><span></span><span></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="void-navbars">
+      <ul class="navbar-nav me-auto void-nav-main">
+        {{ navlink(url_for('views.static_html', route='/'), _("home"), request.path == url_for('views.static_html', route='/')) }}
+        {{ navlink(url_for('challenges.listing'), _("challenges"), _ep.startswith('challenges.')) }}
+        {% if _show_scores %}
+          {{ navlink(url_for('scoreboard.listing'), _("scoreboard"), _ep.startswith('scoreboard.')) }}
+        {% endif %}
+        {% if Configs.account_visibility != 'admins' %}
+          {% if Configs.user_mode == 'teams' %}
+            {{ navlink(url_for('teams.listing'), _("teams"), _ep in ('teams.listing', 'teams.public')) }}
+          {% else %}
+            {{ navlink(url_for('users.listing'), _("players"), _ep in ('users.listing', 'users.public')) }}
+          {% endif %}
+        {% endif %}
+        {% if _rules %}
+          {{ navlink(url_for('views.static_html', route='rules'), _("rules"), request.path == url_for('views.static_html', route='rules')) }}
+        {% endif %}
+        {# Pages from Admin → Pages plus plugin menu entries (rules is already shown above) #}
+        {% set _rules_url = url_for('views.static_html', route='rules') %}
+        {% for page in Plugins.user_menu_pages if page.route != _rules_url %}
+          <li class="nav-item">
+            <a class="nav-link void-nav-link{{ ' active' if request.path == page.route }}" href="{{ page.route }}"{% if request.path == page.route %} aria-current="page"{% endif %} {% if page.link_target %}target="{{ page.link_target }}" rel="noopener"{% endif %}>
+              <span class="void-nav-prompt" aria-hidden="true">&gt;</span>{{ page.title | lower }}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+
+      <div class="void-nav-side">
+        <button type="button" class="void-cmd-trigger" data-void-palette-open aria-haspopup="dialog" aria-controls="void-palette">
+          <span class="void-cmd-caret" aria-hidden="true">$</span>
+          <span class="void-cmd-text">{% trans %}run command{% endtrans %}</span>
+          <kbd aria-hidden="true">Ctrl</kbd><kbd aria-hidden="true">K</kbd>
+          <span class="visually-hidden">{% trans %}Open command palette (Ctrl+K or /){% endtrans %}</span>
+        </button>
+
+        {% if authed() %}
+          {% set _scores_ok = scores_visible() and accounts_visible() %}
+          {% if Configs.user_mode == 'teams' %}
+            {% set _acct = Team if Team.id else None %}
+          {% else %}
+            {% set _acct = User %}
+          {% endif %}
+
+          {% if _acct and _scores_ok %}
+            <a class="void-score-chip" href="{{ url_for('scoreboard.listing') if _show_scores else '#' }}" title="{% trans %}Your current standing{% endtrans %}">
+              {% set _place = _acct.place %}
+              <span class="void-score-rank"><span class="visually-hidden">{% trans %}rank{% endtrans %} </span>{{ _place or "--" }}</span>
+              <span class="void-score-pts"><strong>{{ _acct.score or 0 }}</strong> pts</span>
+            </a>
+          {% endif %}
+
+          <div class="dropdown">
+            <button class="void-user-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <span class="void-user-avatar" aria-hidden="true">{{ (User.name or "?")[0] | upper }}</span>
+              <span class="void-user-meta">
+                <span class="void-user-name">{{ User.name }}</span>
+                {% if Configs.user_mode == 'teams' %}
+                  <span class="void-user-team">{% if Team.id %}{{ Team.name }}{% else %}{% trans %}no team{% endtrans %}{% endif %}</span>
+                {% endif %}
+              </span>
+              <span x-data x-show="$store.unread_count > 0" x-text="$store.unread_count" class="void-unread" aria-label="{% trans %}unread notifications{% endtrans %}"></span>
+              <i class="fas fa-chevron-down small text-muted" aria-hidden="true"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end void-user-menu">
+              <li><a class="dropdown-item" href="{{ url_for('users.private') }}"><i class="fas fa-user-astronaut fa-fw" aria-hidden="true"></i> {% trans %}profile{% endtrans %}</a></li>
+              {% if Configs.user_mode == 'teams' %}
+                <li><a class="dropdown-item" href="{{ url_for('teams.private') }}"><i class="fas fa-users fa-fw" aria-hidden="true"></i> {% trans %}my team{% endtrans %}</a></li>
+              {% endif %}
+              <li>
+                <a class="dropdown-item" href="{{ url_for('views.notifications') }}">
+                  <i class="fas fa-bell fa-fw" aria-hidden="true"></i> {% trans %}notifications{% endtrans %}
+                  <span x-data x-show="$store.unread_count > 0" x-text="$store.unread_count" class="badge rounded-pill bg-danger ms-1"></span>
+                </a>
+              </li>
+              <li><a class="dropdown-item" href="{{ url_for('views.settings') }}"><i class="fas fa-sliders fa-fw" aria-hidden="true"></i> {% trans %}settings{% endtrans %}</a></li>
+              {% if is_admin() %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item text-amber" href="{{ url_for('admin.view') }}"><i class="fas fa-screwdriver-wrench fa-fw" aria-hidden="true"></i> {% trans %}admin panel{% endtrans %}</a></li>
+              {% endif %}
+              {% if Languages.names | length > 1 %}
+                <li><hr class="dropdown-divider"></li>
+                <li class="px-3 pt-1 pb-1 void-label">{% trans %}language{% endtrans %}</li>
+                <li x-data="LanguageForm">
+                  {% set curr_lang = get_locale() %}
+                  <div class="void-lang-list">
+                    {%- for lang in Languages.names.items() %}
+                      <button type="button" class="dropdown-item{{ ' active' if curr_lang == lang[0] }}" @click="set" value="{{ lang[0] }}">{{ lang[1] }}</button>
+                    {%- endfor %}
+                  </div>
+                </li>
+              {% endif %}
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-right-from-bracket fa-fw" aria-hidden="true"></i> {% trans %}logout{% endtrans %}</a></li>
+            </ul>
+          </div>
+        {% else %}
+          <a class="btn btn-sm btn-outline-light void-btn-ghost{{ ' active' if _ep == 'auth.login' }}" href="{{ url_for('auth.login') }}">{% trans %}login{% endtrans %}</a>
+          {% if registration_visible() %}
+            <a class="btn btn-sm btn-primary void-btn" href="{{ url_for('auth.register') }}">{% trans %}register{% endtrans %}</a>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</nav>
+
+{% include "components/palette.html" %}

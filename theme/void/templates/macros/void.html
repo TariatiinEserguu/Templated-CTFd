@@ -1,0 +1,54 @@
+{#- Shared VOID layout macros. -#}
+
+{# Centered terminal window used by login, registration and password reset #}
+{% macro auth_panel(title, command, subtitle=None) -%}
+  <div class="void-auth">
+    <div class="void-auth-side" aria-hidden="true">
+      <div class="void-wordmark void-wordmark-sm">{% include "components/wordmark.html" %}</div>
+      {% set _ts = Configs.theme_settings if (Configs.theme_settings is mapping) else {} %}
+      <p class="void-tagline">{{ _ts.get("tagline") or "ENTER THE VOID. CAPTURE THE FLAG." }}</p>
+      <pre class="void-auth-ascii">
+┌─[ secure channel ]──────────┐
+│  handshake ........... ok   │
+│  cipher .............. tls  │
+│  operator ....... awaiting  │
+└─────────────────────────────┘</pre>
+    </div>
+    <section class="void-panel void-auth-panel" aria-labelledby="void-auth-title">
+      <div class="void-panel-head">
+        <span class="void-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="void-panel-title">auth://{{ command }}</span>
+      </div>
+      <div class="void-auth-body">
+        <p class="void-path mb-1" aria-hidden="true"><span class="text-accent">guest@void</span>:~$ {{ command }}</p>
+        <h1 id="void-auth-title" class="void-auth-title">{{ title }}</h1>
+        {% if subtitle %}<p class="text-muted mb-4">{{ subtitle }}</p>{% endif %}
+        {{ caller() }}
+      </div>
+    </section>
+  </div>
+{%- endmacro %}
+
+{# Terminal-style error screen #}
+{% macro error_screen(code, label, message, icon="fa-triangle-exclamation") -%}
+  <div class="container-xl">
+    <section class="void-error void-panel" aria-labelledby="void-error-title">
+      <div class="void-panel-head">
+        <span class="void-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="void-panel-title">stderr</span>
+        <span class="ms-auto">exit {{ code }}</span>
+      </div>
+      <div class="void-error-body">
+        <div class="void-error-code" aria-hidden="true">{{ code }}</div>
+        <p class="void-path mb-2" aria-hidden="true"><span class="text-accent">void</span>:~{{ request.path }}$</p>
+        <h1 id="void-error-title" class="void-error-title"><i class="fas {{ icon }} me-2" aria-hidden="true"></i>{{ label }}</h1>
+        {% if message %}<p class="void-error-msg">{{ message }}</p>{% endif %}
+        <div class="void-error-actions">
+          <a class="btn btn-primary void-btn" href="{{ url_for('views.static_html', route='/') }}">cd ~</a>
+          <a class="btn btn-outline-light void-btn-ghost" href="{{ url_for('challenges.listing') }}">{% trans %}challenges{% endtrans %}</a>
+          <button type="button" class="btn btn-link" data-void-palette-open>{% trans %}open command palette{% endtrans %}</button>
+        </div>
+      </div>
+    </section>
+  </div>
+{%- endmacro %}

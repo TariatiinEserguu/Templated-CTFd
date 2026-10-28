@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% from "macros/void.html" import error_screen with context %}
+
+{% block content %}
+  {{ error_screen(401, _("401 Unauthorized"), error or _("Authentication required. Log in to continue."), "fa-user-lock") }}
+{% endblock %}

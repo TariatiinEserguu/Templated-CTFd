@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% from "macros/void.html" import error_screen with context %}
+
+{% block content %}
+  {{ error_screen(403, _("403 Forbidden"), error, "fa-lock") }}
+{% endblock %}

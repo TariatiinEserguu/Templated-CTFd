@@ -1,0 +1,43 @@
+=====================================================================
+ VOID//CTF TRAINING DOSSIER  —  CASE FILE 0x07  —  FICTIONAL DATA ONLY
+ Every person, place, account and event below is invented for this
+ exercise. Do not search the real internet: the answer is in this file.
+=====================================================================
+
+SUBJECT ........ Mara Velsk (fictional)
+ROLE ........... retired lighthouse keeper, amateur radio operator
+TASKING ........ Identify (1) the town where the subject grew up and
+                 (2) the year her lighthouse was decommissioned.
+                 Submit as: flag{example_<town>_<year>}  (lowercase)
+
+---------------------------------------------------------------------
+[ARTIFACT A]  Archived post on "Harborline" (a fictional social site)
+  user: @mvelsk_radio            date: 14 Mar
+  "Forty years of tending the light at Grey Hook and I still wake at
+   2am to check the lamp. Old habits. They decommissioned the light
+   the very week my nephew Tomasz was born."
+
+[ARTIFACT B]  Comment thread, same site
+  @tomasz_velsk: "Happy 37th birthday to me! Aunt Mara says the
+                  Grey Hook light went dark the week I arrived :)"
+  posted: 02 Jan 2024
+
+[ARTIFACT C]  Amateur radio log excerpt (fictional callsign XV7-MVK)
+  "QTH note: grew up three streets from the fish market in the town
+   whose name is hidden in my old callsign tag: S A L T M E R E.
+   Moved to Grey Hook at 19."
+
+[ARTIFACT D]  Photo caption (no image supplied)
+  "Kestrel, my first boat, moored at the Saltmere fish quay.
+   The painted name has faded, but the harbor smell has not."
+
+[ARTIFACT E]  Unrelated noise — ignore or verify
+  "Ferry timetable: Grey Hook -> Norrow, departs 07:40, 12:10, 18:30"
+  "Weather: northerly gale warning, sea state rough"
+
+---------------------------------------------------------------------
+ANALYST NOTES
+  - Corroborate before you submit. Only two artifacts are needed for
+    each half of the answer.
+  - Dates in this file are internally consistent.
+=====================================================================

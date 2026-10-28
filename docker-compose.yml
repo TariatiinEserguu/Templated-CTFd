@@ -1,0 +1,130 @@
+# VOID//CTF — local CTFd deployment
+#
+#   Start:   voidctf up        (Windows: .\voidctf.cmd up   — see README)
+#   or:      docker compose up -d   (after creating .env with `voidctf init`)
+#
+# Everything binds to 127.0.0.1 by default, so the platform is private to this
+# computer. Change BIND_ADDRESS in .env only if you deliberately want LAN access.
+
+name: voidctf
+
+services:
+  ctfd:
+    image: ctfd/ctfd:${CTFD_VERSION:-3.8.9}
+    restart: unless-stopped
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is missing - run "voidctf init" to create .env}
+      DATABASE_URL: mysql+pymysql://ctfd:${DB_PASSWORD:?DB_PASSWORD is missing}@db/ctfd
+      REDIS_URL: redis://cache:6379
+      UPLOAD_FOLDER: /var/uploads
+      LOG_FOLDER: /var/log/CTFd
+      WORKERS: ${CTFD_WORKERS:-1}
+      ACCESS_LOG: "-"
+      ERROR_LOG: "-"
+      REVERSE_PROXY: "false"
+      # Theme selection is stored in the database (Admin -> Config -> Theme);
+      # THEME_FALLBACK keeps pages rendering if a theme build is ever missing.
+      THEME_FALLBACK: "true"
+    volumes:
+      - uploads:/var/uploads
+      - logs:/var/log/CTFd
+      # The VOID theme and its optional companion plugin, mounted read-only.
+      - ./theme/void:/opt/CTFd/CTFd/themes/void:ro
+      - ./plugins/void_ctf:/opt/CTFd/CTFd/plugins/void_ctf:ro
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${CTFD_PORT:-8000}:8000"
+    depends_on:
+      permissions:
+        condition: service_completed_successfully
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthcheck', timeout=5)"]
+      interval: 15s
+      timeout: 6s
+      retries: 10
+      start_period: 40s
+    networks:
+      - default
+      - internal
+
+  # Named volumes start out owned by root; CTFd runs as uid 1001.
+  permissions:
+    image: alpine:3.20
+    user: root
+    volumes:
+      - uploads:/var/uploads
+      - logs:/var/log/CTFd
+    command: chown -R 1001:1001 /var/uploads /var/log/CTFd
+    restart: "no"
+
+  db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is missing}
+      MARIADB_USER: ctfd
+      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is missing}
+      MARIADB_DATABASE: ctfd
+      MARIADB_AUTO_UPGRADE: "1"
+    volumes:
+      - db:/var/lib/mysql
+    # Required MariaDB defaults for CTFd
+    command: [mysqld, --character-set-server=utf8mb4, --collation-server=utf8mb4_unicode_ci, --wait_timeout=28800, --log-warnings=0]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - internal
+
+  cache:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis:/data
+    networks:
+      - internal
+
+  # Deliberately vulnerable practice target for the "Staff Only" starter
+  # challenge. Opt-in: `voidctf training-up` (or `docker compose --profile training up -d`).
+  # Hardened container: read-only, no capabilities, unprivileged user, loopback port.
+  web-training:
+    image: python:3.12-alpine
+    profiles: ["training"]
+    restart: unless-stopped
+    command: ["python", "-u", "/app/server.py"]
+    environment:
+      HOST: 0.0.0.0
+      PORT: "8081"
+      FLAG: ${TRAINING_WEB_FLAG:-}
+    volumes:
+      - ./challenges/starter-pack/web-training:/app:ro
+    ports:
+      - "127.0.0.1:${TRAINING_WEB_PORT:-8081}:8081"
+    read_only: true
+    user: "65534:65534"
+    cap_drop: ["ALL"]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 128m
+    pids_limit: 64
+    networks:
+      - training
+
+volumes:
+  db:
+  uploads:
+  logs:
+  redis:
+
+networks:
+  default:
+  # Database and cache are not reachable from outside Docker.
+  internal:
+    internal: true
+  # The training target is isolated from CTFd's database network.
+  training:
